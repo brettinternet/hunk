@@ -1535,6 +1535,7 @@ export function App({
         <ExtensionPaneHost
           registered={pane.registered}
           review={bootstrap.review ?? null}
+          reviewGeneration={getReviewGeneration()}
           files={filteredFiles}
           fileViews={getRenderExtensionFileViews()}
           selectedFileId={selection.file?.id ?? null}
