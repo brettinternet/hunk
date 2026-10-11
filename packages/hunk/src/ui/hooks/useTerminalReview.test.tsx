@@ -321,6 +321,11 @@ describe("useTerminalReview", () => {
       expect(expectValue(controllerRef.current).selectedFileId).toBe("alpha");
       expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(1);
 
+      await act(async () => controller.selectVisibleFile("beta"));
+      await flush(setup);
+      expect(expectValue(controllerRef.current).selectedFileId).toBe("beta");
+      expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(1);
+
       await act(async () => controller.selectVisibleHunk("alpha", 0));
       await flush(setup);
       expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(1);

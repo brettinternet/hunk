@@ -19,7 +19,6 @@ import type {
   ExtensionPromptControls,
   ExtensionReviewControls,
   ExtensionReviewNavigation,
-  ExtensionReviewPresentationControls,
   ExtensionReviewSelection,
   ExtensionStatusLineControls,
   ExtensionWorkspace,
@@ -43,7 +42,6 @@ export function useExtensionCommandRunner({
   createLineHighlightControls,
   createNavigation,
   createPaneControls,
-  createPresentationControls,
   createPromptControls,
   createReviewControls,
   createStatusLineControls,
@@ -61,7 +59,6 @@ export function useExtensionCommandRunner({
   createLineHighlightControls: (extensionId: string) => ExtensionLineHighlightControls;
   createNavigation: (extensionId: string) => ExtensionReviewNavigation;
   createPaneControls: (extensionId: string) => ExtensionPaneControls;
-  createPresentationControls?: (extensionId: string) => ExtensionReviewPresentationControls;
   createPromptControls: (extensionId: string) => ExtensionPromptControls;
   createReviewControls: (extensionId: string) => ExtensionReviewControls;
   createStatusLineControls: (extensionId: string) => ExtensionStatusLineControls;
@@ -69,22 +66,18 @@ export function useExtensionCommandRunner({
   extensions?: ExtensionLoadResult;
   getSelection: () => ExtensionReviewSelection;
 }) {
-  const presentationControls =
-    createPresentationControls ??
-    (() => ({
-      setPresentationScope: () => false,
-      clearPresentationScope: () => undefined,
-    }));
   return useCallback(
     (registered: RegisteredCommand) => {
+      let review: ExtensionReviewControls | undefined;
       const report = (error: unknown) => {
-        presentationControls(registered.extensionId).clearPresentationScope();
+        // Cleanup retains the invocation's lease; late failures cannot clear a newer review.
+        review?.clearPresentationScope();
         extensions?.context.notify(commandFailureMessage(registered, error), "warning");
       };
 
       try {
+        review = createReviewControls(registered.extensionId);
         const panes = createPaneControls(registered.extensionId);
-        const presentation = presentationControls(registered.extensionId);
         // Build the complete context before invoking the handler; selection is frozen here.
         const context: ExtensionCommandContext = {
           cwd: extensions?.context.cwd ?? process.cwd(),
@@ -95,11 +88,7 @@ export function useExtensionCommandRunner({
           sidebars: panes,
           fileViews: createFileViewControls(registered.extensionId),
           highlights: createLineHighlightControls(registered.extensionId),
-          review: {
-            ...createReviewControls(registered.extensionId),
-            setPresentationScope: presentation.setPresentationScope,
-            clearPresentationScope: presentation.clearPresentationScope,
-          },
+          review,
           selection: getSelection(),
           dialogs: createDialogs(registered.extensionId),
           statusLine: createStatusLineControls(registered.extensionId),
@@ -125,7 +114,6 @@ export function useExtensionCommandRunner({
       createLineHighlightControls,
       createNavigation,
       createPaneControls,
-      createPresentationControls,
       createPromptControls,
       createReviewControls,
       createStatusLineControls,

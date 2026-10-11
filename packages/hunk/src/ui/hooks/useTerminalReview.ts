@@ -708,12 +708,18 @@ export function useTerminalReview({
 
   const selectVisibleFile = useCallback(
     (fileId: string, options?: ReviewSelectionOptions) => {
-      if (!projectedNavigationFiles.some((file) => file.fileKey === keyByFileId.get(fileId))) {
-        return;
-      }
-      selectFile(fileId, options);
+      const fileKey = keyByFileId.get(fileId);
+      const firstVisibleHunk = projectedNavigationFiles.find((file) => file.fileKey === fileKey)
+        ?.hunkIndexes?.[0];
+      if (!fileKey || firstVisibleHunk === undefined) return;
+      runIntent({
+        type: "selection/select",
+        fileKey,
+        hunkIndex: firstVisibleHunk,
+        reveal: revealRequestFor(options),
+      });
     },
-    [keyByFileId, projectedNavigationFiles, selectFile],
+    [keyByFileId, projectedNavigationFiles, runIntent],
   );
 
   const selectVisibleHunk = useCallback(

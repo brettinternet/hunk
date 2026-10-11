@@ -712,7 +712,6 @@ export function App({
     createLineHighlightControls,
     createNavigation: createExtensionNavigation,
     createPaneControls,
-    createPresentationControls: createExtensionPresentationControls,
     createPromptControls: createExtensionPrompts,
     createReviewControls: createExtensionReviewControls,
     createStatusLineControls: createExtensionStatusLine,

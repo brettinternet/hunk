@@ -35,31 +35,36 @@ export function useExtensionPresentationScope({
   }
   const store = storeRef.current;
   const registry = extensions?.registry;
+  const activeRegistryRef = useRef(registry);
+  activeRegistryRef.current = registry;
   const generation = getGeneration();
-  // Registry results may be recreated while the same extension lifecycle remains mounted.
-  // Derive a value from stable ownership facts instead of depending on the registry object so a
-  // pane re-render cannot clear its own scope and trigger a clear/reapply loop.
-  const registryLifecycleKey = registry
-    ? `${registry.eventBusPhase}:${registry.extensions.map((entry) => `${entry.id}:${entry.sourcePath}:${entry.origin}`).join("\u0000")}`
-    : "none";
 
+  // A load result can be recreated without retiring its registry. A replacement registry,
+  // even with identical extension metadata, owns a new lifecycle and no previous scopes.
   useLayoutEffect(() => {
     store.clearAll();
-  }, [generation, registryLifecycleKey, store]);
+  }, [generation, registry, store]);
 
   const clearExtensionScope = useCallback(
     (extensionId: string) => store.clear(extensionId),
     [store],
   );
   const createControls = useCallback(
-    (extensionId: string): ExtensionReviewPresentationControls => ({
-      setPresentationScope(scope: ExtensionReviewPresentationScope) {
-        return store.set(extensionId, scope);
-      },
-      clearPresentationScope() {
-        store.clear(extensionId);
-      },
-    }),
+    (extensionId: string): ExtensionReviewPresentationControls => {
+      const owner = activeRegistryRef.current;
+      return {
+        setPresentationScope(scope: ExtensionReviewPresentationScope) {
+          return (
+            owner !== undefined &&
+            owner === activeRegistryRef.current &&
+            store.set(extensionId, scope)
+          );
+        },
+        clearPresentationScope() {
+          if (owner === activeRegistryRef.current) store.clear(extensionId);
+        },
+      };
+    },
     [store],
   );
 

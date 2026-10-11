@@ -1,4 +1,5 @@
 import { reviewExpansionSide } from "../../core/review/expansion";
+import { reviewNoteOwnerHunkIndex } from "../../core/review/state";
 import { DEFAULT_TAB_WIDTH } from "../../core/run/tabWidth";
 import { DEFAULT_HUNK_GAP } from "../../core/run/reviewGap";
 import type { DiffFile } from "../../core/changeset/model";
@@ -98,7 +99,11 @@ export function buildDiffSectionRowPlan({
       fileId: file.id,
       rows,
       showHunkHeaders,
-      visibleAgentNotes,
+      // A scoped-out owner must not fall back to another hunk's rows. Keep unscoped
+      // placement unchanged, including notes anchored to collapsed context.
+      visibleAgentNotes: visibleHunkIndexes
+        ? visibleAgentNotes.filter((note) => visibleHunkIndexes.has(reviewNoteOwnerHunkIndex(note)))
+        : visibleAgentNotes,
       hunkGap,
     }),
   };
