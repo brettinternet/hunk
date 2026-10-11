@@ -998,10 +998,19 @@ handler, use `props.reviewGeneration` as the scope's `generation` and the
 visible file `id` plus hunk indexes as its targets:
 
 ```ts
-props.actions.setPresentationScope({
-  generation: props.reviewGeneration!,
-  files: [{ fileId: file.id, hunkIndexes: [hunk.index] }],
-});
+import type { ExtensionPaneProps } from "hunkdiff/extension";
+
+/** Focus the first hunk of the first visible file from a pane action. */
+export function focusFirstHunk(props: ExtensionPaneProps): boolean {
+  const file = props.files[0];
+  const targetHunk = file?.hunks?.[0];
+  if (!props.reviewGeneration || !file || !targetHunk) return false;
+
+  return props.actions.setPresentationScope({
+    generation: props.reviewGeneration,
+    files: [{ fileId: file.id, hunkIndexes: [targetHunk.index] }],
+  });
+}
 ```
 
 Guard the call when `reviewGeneration` is `null`; the host rejects stale or malformed
@@ -1926,11 +1935,19 @@ filter without changing canonical review state. Each scope names files by `fileI
 zero-based `hunkIndexes` to retain:
 
 ```ts
-const review = ctx.review.snapshot();
-if (review) {
-  ctx.review.setPresentationScope({
-    generation: review.generation,
-    files: [{ fileId: review.files[0].runtimeId, hunkIndexes: [0] }],
+import type { HunkExtensionAPI } from "hunkdiff/extension";
+
+export default function (hunk: HunkExtensionAPI) {
+  hunk.registerCommand({ id: "focus-first", title: "Focus first hunk" }, (ctx) => {
+    const review = ctx.review.snapshot();
+    const file = ctx.selection.files[0];
+    const targetHunk = file?.hunks?.[0];
+    if (!review || !file || !targetHunk) return;
+
+    ctx.review.setPresentationScope({
+      generation: review.generation,
+      files: [{ fileId: file.id, hunkIndexes: [targetHunk.index] }],
+    });
   });
 }
 ```
